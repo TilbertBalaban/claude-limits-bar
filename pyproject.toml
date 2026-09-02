@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-usage-bar"
+version = "1.0.0"
+description = "Claude Code limits and reset times in the macOS menu bar"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Tilbert Balaban" }]
+requires-python = ">=3.9"
+dependencies = ["pyobjc-framework-Cocoa>=9.0", "certifi"]
+
+[project.urls]
+Homepage = "https://github.com/TilbertBalaban/claude-usage-bar"
+
+[project.scripts]
+claude-usage-bar = "claude_usage_bar.cli:main"
+
+[tool.setuptools]
+packages = ["claude_usage_bar"]
