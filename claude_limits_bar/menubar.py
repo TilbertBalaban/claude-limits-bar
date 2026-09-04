@@ -5,6 +5,7 @@ time until the 5-hour limit resets. The dropdown shows a large session donut
 with the weekly limit as a thin outer arc, and one row per limit.
 """
 
+import math
 import threading
 import time
 import webbrowser
@@ -12,14 +13,13 @@ import webbrowser
 import objc
 from AppKit import (
     NSApplication, NSApplicationActivationPolicyAccessory,
-    NSAffineTransform, NSAttributedString, NSBezierPath, NSButton, NSColor,
-    NSCompositingOperationSourceOver, NSFont,
+    NSAttributedString, NSBezierPath, NSButton, NSColor, NSFont,
     NSFontAttributeName, NSForegroundColorAttributeName, NSImage, NSMakeRect,
     NSMenu, NSMenuItem, NSMutableParagraphStyle, NSParagraphStyleAttributeName,
     NSEventTrackingRunLoopMode, NSStatusBar, NSTextAlignmentCenter,
     NSTextAlignmentLeft, NSTextAlignmentRight, NSTrackingActiveAlways,
     NSTrackingArea, NSTrackingMouseEnteredAndExited,
-    NSVariableStatusItemLength, NSView, NSZeroRect,
+    NSVariableStatusItemLength, NSView,
 )
 from Foundation import (
     NSDefaultRunLoopMode, NSObject, NSRunLoop, NSRunLoopCommonModes, NSTimer,
@@ -115,20 +115,33 @@ def status_bar_image(limits, dark):
     return img
 
 
-def rotated_image(image, degrees):
-    """Template copy of `image` rotated about its center on a square canvas
-    large enough that the corners never clip mid-rotation."""
-    w, h = image.size().width, image.size().height
-    side = max(w, h) + 6
+def refresh_icon(degrees=0):
+    """Template refresh glyph: a 300° arc with an arrowhead, drawn about the
+    exact canvas center so spinning it never wobbles (unlike the SF Symbol,
+    whose arrowhead makes it visually off-center)."""
+    side = 17.0
+    c = side / 2.0
+    r = 5.6
     out = NSImage.alloc().initWithSize_((side, side))
     out.lockFocus()
-    t = NSAffineTransform.transform()
-    t.translateXBy_yBy_(side / 2.0, side / 2.0)
-    t.rotateByDegrees_(degrees)
-    t.translateXBy_yBy_(-w / 2.0, -h / 2.0)
-    t.concat()
-    image.drawInRect_fromRect_operation_fraction_(
-        NSMakeRect(0, 0, w, h), NSZeroRect, NSCompositingOperationSourceOver, 1.0)
+    NSColor.blackColor().set()
+    start, end = 340 - degrees, 40 - degrees   # 300° sweep, gap at top-right
+    arc = NSBezierPath.bezierPath()
+    arc.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_(
+        (c, c), r, start, end, True)
+    arc.setLineWidth_(1.7)
+    arc.setLineCapStyle_(1)
+    arc.stroke()
+    a = math.radians(end)
+    tip_x, tip_y = c + r * math.cos(a), c + r * math.sin(a)
+    tx, ty = math.sin(a), -math.cos(a)          # clockwise tangent
+    nx, ny = math.cos(a), math.sin(a)           # outward normal
+    head = NSBezierPath.bezierPath()
+    head.moveToPoint_((tip_x + tx * 3.2, tip_y + ty * 3.2))
+    head.lineToPoint_((tip_x + nx * 2.6 - tx * 0.6, tip_y + ny * 2.6 - ty * 0.6))
+    head.lineToPoint_((tip_x - nx * 2.6 - tx * 0.6, tip_y - ny * 2.6 - ty * 0.6))
+    head.closePath()
+    head.fill()
     out.unlockFocus()
     out.setTemplate_(True)
     return out
@@ -174,7 +187,8 @@ class HeaderView(NSView):
             self.addSubview_(button)
             if action == "refresh:":
                 self.refresh_button = button
-                self.refresh_image = button.image()
+                self.refresh_image = refresh_icon(0)
+                button.setImage_(self.refresh_image)
             self.addTrackingArea_(NSTrackingArea.alloc().initWithRect_options_owner_userInfo_(
                 frame,
                 NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways,
@@ -184,11 +198,8 @@ class HeaderView(NSView):
 
     @objc.python_method
     def set_spin(self, degrees):
-        if self.refresh_image is None:
-            return
         self.refresh_button.setImage_(
-            self.refresh_image if degrees == 0
-            else rotated_image(self.refresh_image, -degrees))
+            self.refresh_image if degrees == 0 else refresh_icon(degrees))
 
     def mouseEntered_(self, event):
         NSObject.cancelPreviousPerformRequestsWithTarget_(self)

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.2 — 2026-09-04
+
+- Hand-drawn refresh icon centered on its own axis, so the spin animation no longer wobbles (the SF Symbol's arrowhead made it orbit)
+
 ## v1.3.1 — 2026-09-04
 
 - Refresh icon spins by swapping in rotated renderings of the symbol instead of rotating the button view, which looked skewed and blurry
