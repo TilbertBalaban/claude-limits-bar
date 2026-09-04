@@ -28,7 +28,7 @@ from .limits import (
 
 REFRESH_SECONDS = 60
 MENU_WIDTH = 250
-DONATE_URL = "https://buymeacoffee.com/tilbertbalaban"
+DONATE_URL = "https://base.monobank.ua/tilbertbalaban"
 USAGE_URL = "https://claude.ai/settings/usage"
 
 GREEN = NSColor.systemGreenColor()
