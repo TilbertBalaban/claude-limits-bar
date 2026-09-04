@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.3 — 2026-09-04
+
+- Refresh icon resized and thinned to match the neighbouring SF Symbols, and rendered as a vector so it is crisp on Retina
+
 ## v1.3.2 — 2026-09-04
 
 - Hand-drawn refresh icon centered on its own axis, so the spin animation no longer wobbles (the SF Symbol's arrowhead made it orbit)

@@ -116,33 +116,36 @@ def status_bar_image(limits, dark):
 
 
 def refresh_icon(degrees=0):
-    """Template refresh glyph: a 300° arc with an arrowhead, drawn about the
-    exact canvas center so spinning it never wobbles (unlike the SF Symbol,
-    whose arrowhead makes it visually off-center)."""
-    side = 17.0
+    """Template refresh glyph sized and weighted like the SF Symbols next to
+    it: a 300° arc with an arrowhead, drawn about the exact canvas center so
+    spinning it never wobbles (the SF Symbol's arrowhead makes it orbit)."""
+    side = 15.0
     c = side / 2.0
-    r = 5.6
-    out = NSImage.alloc().initWithSize_((side, side))
-    out.lockFocus()
-    NSColor.blackColor().set()
-    start, end = 340 - degrees, 40 - degrees   # 300° sweep, gap at top-right
-    arc = NSBezierPath.bezierPath()
-    arc.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_(
-        (c, c), r, start, end, True)
-    arc.setLineWidth_(1.7)
-    arc.setLineCapStyle_(1)
-    arc.stroke()
-    a = math.radians(end)
-    tip_x, tip_y = c + r * math.cos(a), c + r * math.sin(a)
-    tx, ty = math.sin(a), -math.cos(a)          # clockwise tangent
-    nx, ny = math.cos(a), math.sin(a)           # outward normal
-    head = NSBezierPath.bezierPath()
-    head.moveToPoint_((tip_x + tx * 3.2, tip_y + ty * 3.2))
-    head.lineToPoint_((tip_x + nx * 2.6 - tx * 0.6, tip_y + ny * 2.6 - ty * 0.6))
-    head.lineToPoint_((tip_x - nx * 2.6 - tx * 0.6, tip_y - ny * 2.6 - ty * 0.6))
-    head.closePath()
-    head.fill()
-    out.unlockFocus()
+    r = 5.3
+
+    def draw(_rect):
+        NSColor.blackColor().set()
+        start, end = 340 - degrees, 40 - degrees   # 300° sweep, gap at top-right
+        arc = NSBezierPath.bezierPath()
+        arc.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_(
+            (c, c), r, start, end, True)
+        arc.setLineWidth_(1.35)
+        arc.setLineCapStyle_(1)
+        arc.stroke()
+        a = math.radians(end)
+        tip_x, tip_y = c + r * math.cos(a), c + r * math.sin(a)
+        tx, ty = math.sin(a), -math.cos(a)          # clockwise tangent
+        nx, ny = math.cos(a), math.sin(a)           # outward normal
+        head = NSBezierPath.bezierPath()
+        head.moveToPoint_((tip_x + tx * 2.4, tip_y + ty * 2.4))
+        head.lineToPoint_((tip_x + nx * 2.0 - tx * 0.5, tip_y + ny * 2.0 - ty * 0.5))
+        head.lineToPoint_((tip_x - nx * 2.0 - tx * 0.5, tip_y - ny * 2.0 - ty * 0.5))
+        head.closePath()
+        head.fill()
+        return True
+
+    # A drawing handler keeps the glyph vector, so it is crisp on Retina.
+    out = NSImage.imageWithSize_flipped_drawingHandler_((side, side), False, draw)
     out.setTemplate_(True)
     return out
 
