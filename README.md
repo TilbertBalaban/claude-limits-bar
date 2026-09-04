@@ -51,7 +51,7 @@ claude-usage-bar status         # print current limits to the terminal
 
 ## Support
 
-If this app saves you from surprise rate limits, you can support development via the `$` button in the app or at [github.com/sponsors/TilbertBalaban](https://github.com/sponsors/TilbertBalaban).
+If this app saves you from surprise rate limits, you can support development via the `$` button in the app or at [buymeacoffee.com/tilbertbalaban](https://buymeacoffee.com/tilbertbalaban).
 
 ## Development
 
