@@ -276,7 +276,6 @@ class StatusApp(NSObject):
             self.menu.addItem_(err)
         self.menu.addItem_(NSMenuItem.separatorItem())
         self._add_action("Open claude.ai usage page", "openUsage:")
-        self._add_action("Support this app", "donate:")
         self.menu.addItem_(NSMenuItem.separatorItem())
         version = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "claude-usage-bar v" + VERSION, None, "")
