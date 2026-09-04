@@ -97,7 +97,7 @@ class TestTimeFormatting(unittest.TestCase):
         self.assertEqual(reset_label(same_day, NOW), "Today 6:10 PM")
         other_day = datetime(2026, 9, 5, 1, 0, tzinfo=NOW.astimezone().tzinfo)
         label = reset_label(other_day, NOW)
-        self.assertEqual(label, "Sep 5 1 AM")
+        self.assertEqual(label, "Sep 5 1:00 AM")
         self.assertEqual(reset_label(None, NOW), "?")
 
 

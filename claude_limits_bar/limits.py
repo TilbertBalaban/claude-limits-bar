@@ -226,12 +226,12 @@ def local_reset_time(resets_at: Optional[datetime], now: Optional[datetime] = No
 
 
 def reset_label(resets_at: Optional[datetime], now: Optional[datetime] = None) -> str:
-    """Reset moment the way the menu rows show it: "Today 6:10 PM", "Sep 5 1 AM"."""
+    """Reset moment the way the menu rows show it: "Today 6:10 PM", "Sep 5 1:00 AM"."""
     if resets_at is None:
         return "?"
     now_local = (now or datetime.now(timezone.utc)).astimezone()
     local = resets_at.astimezone()
-    time_part = local.strftime("%-I %p") if local.minute == 0 else local.strftime("%-I:%M %p")
+    time_part = local.strftime("%-I:%M %p")
     if local.date() == now_local.date():
         return "Today " + time_part
     return local.strftime("%b %-d ") + time_part

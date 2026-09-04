@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.1 — 2026-09-04
+
+- Reset times always show minutes ("1:00 AM" instead of "1 AM")
+
 ## v1.4.0 — 2026-09-04
 
 - Header buttons reordered: support ($), stats, refresh

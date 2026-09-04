@@ -18,8 +18,8 @@ Click it for the full picture: a large donut for the session limit (weekly as a 
 ✳ Claude Limits          ($) (↻)
         ╭─── 66% Used ───╮
 ◔66  5-Hour Limit     Today 6:10 PM
-◔12  7-Day Limit         Sep 5 1 AM
-◔18  7-Day (Fable)       Sep 5 1 AM
+◔12  7-Day Limit         Sep 5 1:00 AM
+◔18  7-Day (Fable)       Sep 5 1:00 AM
 ```
 
 Rings turn orange at 80% or when Anthropic reports elevated severity, and red with `!` at 100% — the session (5-hour) limit is the one that usually triggers "Too many requests".
