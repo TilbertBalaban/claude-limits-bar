@@ -20,7 +20,6 @@ from AppKit import (
 from Foundation import NSObject, NSTimer
 from PyObjCTools import AppHelper
 
-from . import VERSION
 from .limits import (
     CredentialsNotFound, TokenRejected, UsageRateLimited,
     get_limits, reset_label, time_until,
@@ -125,6 +124,10 @@ class HeaderView(NSView):
             NSMakeRect(0, 0, MENU_WIDTH, 38))
         if self is None:
             return None
+        stats = _symbol_button("chart.bar.xaxis", "📊",
+                               "Open claude.ai usage stats", target, "openUsage:")
+        stats.setFrame_(NSMakeRect(MENU_WIDTH - 100, 7, 26, 24))
+        self.addSubview_(stats)
         donate = _symbol_button("dollarsign.circle", "$",
                                 "Support the developer", target, "donate:")
         donate.setFrame_(NSMakeRect(MENU_WIDTH - 70, 7, 26, 24))
@@ -136,7 +139,7 @@ class HeaderView(NSView):
         return self
 
     def drawRect_(self, rect):
-        draw_text("✳ Claude Usage", NSMakeRect(16, 3, MENU_WIDTH - 90, 32),
+        draw_text("✳ Claude Usage", NSMakeRect(16, 3, MENU_WIDTH - 120, 32),
                   text_attrs(14, NSColor.labelColor(), bold=True,
                              align=NSTextAlignmentLeft))
 
@@ -275,12 +278,6 @@ class StatusApp(NSObject):
             err.setEnabled_(False)
             self.menu.addItem_(err)
         self.menu.addItem_(NSMenuItem.separatorItem())
-        self._add_action("Open claude.ai usage page", "openUsage:")
-        self.menu.addItem_(NSMenuItem.separatorItem())
-        version = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "claude-usage-bar v" + VERSION, None, "")
-        version.setEnabled_(False)
-        self.menu.addItem_(version)
         self._add_action("Quit", "quit:")
 
     @objc.python_method
