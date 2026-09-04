@@ -7,6 +7,7 @@ import json
 import os
 import ssl
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from typing import List, Optional
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 KEYCHAIN_SERVICE = "Claude Code-credentials"
 CREDENTIALS_FILE = Path.home() / ".claude" / ".credentials.json"
+CACHE_FILE = Path.home() / "Library" / "Caches" / "claude-limits-bar" / "usage.json"
+CACHE_MAX_AGE = 3600
 REQUEST_TIMEOUT = 15
 
 WARN_PERCENT = 80
@@ -119,6 +122,25 @@ def fetch_usage(token: str) -> dict:
         if e.code == 429:
             raise UsageRateLimited() from e
         raise
+
+
+def save_cache(data: dict, path: Path = CACHE_FILE) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"saved_at": time.time(), "data": data}))
+    except OSError:
+        pass
+
+
+def load_cache(path: Path = CACHE_FILE, max_age: float = CACHE_MAX_AGE) -> Optional[dict]:
+    """Last successful usage response if it is recent enough, else None."""
+    try:
+        payload = json.loads(path.read_text())
+        if time.time() - float(payload["saved_at"]) > max_age:
+            return None
+        return payload["data"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
 
 
 def get_limits() -> List[Limit]:

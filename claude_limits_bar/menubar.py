@@ -28,7 +28,8 @@ from PyObjCTools import AppHelper
 
 from .limits import (
     CredentialsNotFound, TokenRejected, UsageRateLimited,
-    get_limits, reset_label, time_until,
+    fetch_usage, get_access_token, load_cache, parse_limits, reset_label,
+    save_cache, time_until,
 )
 from .update import CHECK_INTERVAL_SECONDS, RELEASES_URL, available_update
 
@@ -38,6 +39,7 @@ SPIN_STEP_DEGREES = 12
 SPIN_MIN_SECONDS = 0.6
 MENU_WIDTH = 264
 RATE_LIMIT_ERROR = "Usage API rate-limited — showing last known data"
+RATE_LIMIT_NO_DATA_ERROR = "Usage API rate-limited — retrying in a minute"
 DONATE_URL = "https://base.monobank.ua/tilbertbalaban"
 USAGE_URL = "https://claude.ai/settings/usage"
 
@@ -170,8 +172,8 @@ class HeaderView(NSView):
     """
 
     BUTTONS = [
-        ("chart.bar.xaxis", "📊", "Open claude.ai stats", "openUsage:"),
         ("dollarsign.circle", "$", "Support the developer", "donate:"),
+        ("chart.bar.xaxis", "📊", "Open claude.ai stats", "openUsage:"),
         ("arrow.clockwise", "↻", "Refresh", "refresh:"),
     ]
     CLEAR_DELAY = 0.25
@@ -328,7 +330,8 @@ class ErrorRowView(NSView):
 
 class StatusApp(NSObject):
     def applicationDidFinishLaunching_(self, _notification):
-        self._limits = []
+        cached = load_cache()
+        self._limits = parse_limits(cached) if cached else []
         self._error = None
         self._skip_ticks = 0
         self._update = None
@@ -387,13 +390,15 @@ class StatusApp(NSObject):
             self._update = available_update()
         limits, error = None, None
         try:
-            limits = get_limits()
+            data = fetch_usage(get_access_token())
+            limits = parse_limits(data)
+            save_cache(data)
         except CredentialsNotFound:
             error = "No Claude Code credentials — run `claude` and sign in"
         except TokenRejected:
             error = "Token expired — use Claude Code once to refresh it"
         except UsageRateLimited:
-            error = RATE_LIMIT_ERROR
+            error = RATE_LIMIT_ERROR if self._limits else RATE_LIMIT_NO_DATA_ERROR
         except Exception:
             error = "Could not reach api.anthropic.com"
         AppHelper.callAfter(self._apply, limits, error)

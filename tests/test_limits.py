@@ -122,5 +122,20 @@ class TestLimitLine(unittest.TestCase):
         self.assertIn("in 2h 40m", line)
 
 
+class TestCache(unittest.TestCase):
+    def test_roundtrip_and_expiry(self):
+        import tempfile
+        from pathlib import Path
+        from claude_limits_bar.limits import load_cache, save_cache
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "nested" / "usage.json"
+            self.assertIsNone(load_cache(path))
+            save_cache(SAMPLE_RESPONSE, path)
+            self.assertEqual(load_cache(path), SAMPLE_RESPONSE)
+            self.assertIsNone(load_cache(path, max_age=-1))
+            path.write_text("garbage")
+            self.assertIsNone(load_cache(path))
+
+
 if __name__ == "__main__":
     unittest.main()

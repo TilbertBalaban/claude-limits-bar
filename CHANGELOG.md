@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.0 — 2026-09-04
+
+- Header buttons reordered: support ($), stats, refresh
+- The last successful usage response is cached on disk (~/Library/Caches/claude-limits-bar), so a restart shows data immediately instead of "✳ ?"
+- When there is no data yet and the usage API returns 429, the app retries every minute instead of backing off for five
+
 ## v1.3.3 — 2026-09-04
 
 - Refresh icon resized and thinned to match the neighbouring SF Symbols, and rendered as a vector so it is crisp on Retina
