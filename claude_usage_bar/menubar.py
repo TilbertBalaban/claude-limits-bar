@@ -26,7 +26,8 @@ from .limits import (
 )
 
 REFRESH_SECONDS = 60
-MENU_WIDTH = 250
+MENU_WIDTH = 264
+RATE_LIMIT_ERROR = "Usage API rate-limited — showing last known data"
 DONATE_URL = "https://base.monobank.ua/tilbertbalaban"
 USAGE_URL = "https://claude.ai/settings/usage"
 
@@ -196,18 +197,38 @@ class LimitRowView(NSView):
         pct = round(limit.percent)
         draw_text("!" if pct >= 100 else str(pct), NSMakeRect(20, 9, 18, 18),
                   text_attrs(6.5, NSColor.labelColor(), bold=True))
-        draw_text(limit.label, NSMakeRect(46, 2, 110, 32),
+        draw_text(limit.label, NSMakeRect(46, 2, 92, 32),
                   text_attrs(13, NSColor.secondaryLabelColor(),
                              align=NSTextAlignmentLeft))
-        draw_text(reset_label(limit.resets_at), NSMakeRect(100, 2, MENU_WIDTH - 118, 32),
+        draw_text(reset_label(limit.resets_at), NSMakeRect(120, 2, MENU_WIDTH - 136, 32),
                   text_attrs(13, NSColor.labelColor(), bold=True,
                              align=NSTextAlignmentRight))
+
+
+class ErrorRowView(NSView):
+    """Fixed-width warning row so long messages never widen the menu."""
+
+    def initWithMessage_(self, message):
+        self = objc.super(ErrorRowView, self).initWithFrame_(
+            NSMakeRect(0, 0, MENU_WIDTH, 34))
+        if self is None:
+            return None
+        self._message = message
+        return self
+
+    def drawRect_(self, rect):
+        attrs = text_attrs(11, NSColor.secondaryLabelColor(),
+                           align=NSTextAlignmentLeft)
+        NSAttributedString.alloc().initWithString_attributes_(
+            "⚠️ " + self._message, attrs).drawInRect_(
+            NSMakeRect(16, 2, MENU_WIDTH - 32, 30))
 
 
 class StatusApp(NSObject):
     def applicationDidFinishLaunching_(self, _notification):
         self._limits = []
         self._error = None
+        self._skip_ticks = 0
         self.status_item = NSStatusBar.systemStatusBar().statusItemWithLength_(
             NSVariableStatusItemLength)
         self.status_item.button().setImagePosition_(2)  # NSImageLeft
@@ -219,6 +240,9 @@ class StatusApp(NSObject):
         self.tick_(None)
 
     def tick_(self, _timer):
+        if self._skip_ticks > 0:
+            self._skip_ticks -= 1
+            return
         threading.Thread(target=self._fetch, daemon=True).start()
 
     @objc.python_method
@@ -231,7 +255,7 @@ class StatusApp(NSObject):
         except TokenRejected:
             error = "Token expired — use Claude Code once to refresh it"
         except UsageRateLimited:
-            error = "Usage API rate-limited — showing last known data"
+            error = RATE_LIMIT_ERROR
         except Exception:
             error = "Could not reach api.anthropic.com"
         AppHelper.callAfter(self._apply, limits, error)
@@ -241,6 +265,8 @@ class StatusApp(NSObject):
         if limits is not None:
             self._limits = limits
         self._error = error
+        # The usage endpoint has its own rate limit; poll gently after a 429.
+        self._skip_ticks = 4 if error == RATE_LIMIT_ERROR else 0
         self._render()
 
     @objc.python_method
@@ -273,9 +299,8 @@ class StatusApp(NSObject):
                 row.setView_(LimitRowView.alloc().initWithLimit_(limit))
                 self.menu.addItem_(row)
         if self._error:
-            err = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-                "⚠️ " + self._error, None, "")
-            err.setEnabled_(False)
+            err = NSMenuItem.alloc().init()
+            err.setView_(ErrorRowView.alloc().initWithMessage_(self._error))
             self.menu.addItem_(err)
         self.menu.addItem_(NSMenuItem.separatorItem())
         self._add_action("Quit", "quit:")
@@ -288,6 +313,7 @@ class StatusApp(NSObject):
         self.menu.addItem_(item)
 
     def refresh_(self, _sender):
+        self._skip_ticks = 0
         self.tick_(None)
 
     def openUsage_(self, _sender):
