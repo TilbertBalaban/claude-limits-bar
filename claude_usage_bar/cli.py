@@ -5,7 +5,9 @@ import sys
 from pathlib import Path
 
 from . import VERSION
-from .limits import CredentialsNotFound, TokenRejected, get_limits, limit_line
+from .limits import (
+    CredentialsNotFound, TokenRejected, UsageRateLimited, get_limits, limit_line,
+)
 
 LAUNCH_AGENT = Path.home() / "Library" / "LaunchAgents" / "com.claude-usage-bar.plist"
 
@@ -18,6 +20,9 @@ def cmd_status() -> int:
         return 1
     except TokenRejected:
         print("Stored token was rejected — use Claude Code once so it refreshes the token.")
+        return 1
+    except UsageRateLimited:
+        print("The usage API is rate-limited right now — try again in a minute.")
         return 1
     if not limits:
         print("No limits reported for this account.")

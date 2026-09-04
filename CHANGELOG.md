@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.1 — 2026-09-04
+
+- Friendly `status` message instead of a traceback when the usage API returns 429
+
 ## v1.1.0 — 2026-09-04
 
 - Once-a-day update check against GitHub releases; an "Update available" item appears in the menu when a newer version exists
