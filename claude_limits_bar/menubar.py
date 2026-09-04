@@ -16,9 +16,7 @@ from AppKit import (
     NSFontAttributeName, NSForegroundColorAttributeName, NSImage, NSMakeRect,
     NSMenu, NSMenuItem, NSMutableParagraphStyle, NSParagraphStyleAttributeName,
     NSStatusBar, NSTextAlignmentCenter, NSTextAlignmentLeft,
-    NSTextAlignmentRight, NSTrackingActiveAlways,
-    NSTrackingArea, NSTrackingMouseEnteredAndExited,
-    NSVariableStatusItemLength, NSView,
+    NSTextAlignmentRight, NSVariableStatusItemLength, NSView,
 )
 from Foundation import NSObject, NSTimer
 from PyObjCTools import AppHelper
@@ -122,11 +120,7 @@ def _symbol_button(symbol, fallback, tooltip, target, action):
 
 
 class HeaderView(NSView):
-    """App title with the stats, donate ($) and refresh icon buttons.
-
-    AppKit tooltips never fire while a menu is tracking, so hovering a button
-    swaps the header title for its hint text instead.
-    """
+    """App title with the stats, donate ($) and refresh icon buttons."""
 
     BUTTONS = [
         ("chart.bar.xaxis", "📊", "Open claude.ai stats", "openUsage:"),
@@ -139,37 +133,18 @@ class HeaderView(NSView):
             NSMakeRect(0, 0, MENU_WIDTH, 38))
         if self is None:
             return None
-        self._hint = None
         x = MENU_WIDTH - 30 * len(self.BUTTONS) - 10
-        for symbol, fallback, hint, action in self.BUTTONS:
-            button = _symbol_button(symbol, fallback, hint, target, action)
-            frame = NSMakeRect(x, 7, 26, 24)
-            button.setFrame_(frame)
+        for symbol, fallback, tooltip, action in self.BUTTONS:
+            button = _symbol_button(symbol, fallback, tooltip, target, action)
+            button.setFrame_(NSMakeRect(x, 7, 26, 24))
             self.addSubview_(button)
-            self.addTrackingArea_(NSTrackingArea.alloc().initWithRect_options_owner_userInfo_(
-                frame,
-                NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways,
-                self, {"hint": hint}))
             x += 30
         return self
 
-    def mouseEntered_(self, event):
-        self._hint = event.trackingArea().userInfo()["hint"]
-        self.setNeedsDisplay_(True)
-
-    def mouseExited_(self, _event):
-        self._hint = None
-        self.setNeedsDisplay_(True)
-
     def drawRect_(self, rect):
-        if self._hint:
-            draw_text(self._hint, NSMakeRect(16, 3, MENU_WIDTH - 110, 32),
-                      text_attrs(12, NSColor.secondaryLabelColor(),
-                                 align=NSTextAlignmentLeft))
-        else:
-            draw_text("✳ Claude Limits", NSMakeRect(16, 3, MENU_WIDTH - 110, 32),
-                      text_attrs(14, NSColor.labelColor(), bold=True,
-                                 align=NSTextAlignmentLeft))
+        draw_text("✳ Claude Limits", NSMakeRect(16, 3, MENU_WIDTH - 110, 32),
+                  text_attrs(14, NSColor.labelColor(), bold=True,
+                             align=NSTextAlignmentLeft))
 
 
 class DonutView(NSView):
@@ -314,7 +289,14 @@ class StatusApp(NSObject):
         else:
             button.setImage_(None)
             button.setTitle_("✳ …" if self._error is None else "✳ ?")
-        self._rebuild_menu()
+        # Rebuilding replaces the menu's views, which cancels hover/tooltips
+        # if the menu is open — skip it when nothing visible changed.
+        state = (tuple((l.label, round(l.percent), l.resets_at, l.severity)
+                       for l in self._limits),
+                 self._error, self._update)
+        if state != getattr(self, "_menu_state", None):
+            self._menu_state = state
+            self._rebuild_menu()
 
     @objc.python_method
     def _rebuild_menu(self):

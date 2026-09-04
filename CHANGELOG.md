@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.2 — 2026-09-04
+
+- Header button hints are native tooltips only; removed the hover title swap
+- The menu no longer rebuilds while open unless data changed, so tooltips and hover state survive refresh ticks
+
 ## v1.2.1 — 2026-09-04
 
 - Hovering a header button now shows its hint in the header (AppKit tooltips don't fire inside open menus)
