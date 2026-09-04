@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.0 — 2026-09-04
+
+- Once-a-day update check against GitHub releases; an "Update available" item appears in the menu when a newer version exists
+- Header buttons: usage stats (chart icon) and support ($) with tooltips; removed the text menu items and version line
+- Fixed-width warning row so long messages never widen the menu
+- Back off for 5 minutes when the usage API returns 429 (manual refresh still fetches immediately)
+- Published on PyPI and via the tilbertbalaban/tap Homebrew tap
+
+
 ## v1.0.0 — 2026-09-02
 
 First release.

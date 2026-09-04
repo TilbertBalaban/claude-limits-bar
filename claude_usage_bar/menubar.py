@@ -6,6 +6,7 @@ with the weekly limit as a thin outer arc, and one row per limit.
 """
 
 import threading
+import time
 import webbrowser
 
 import objc
@@ -24,6 +25,7 @@ from .limits import (
     CredentialsNotFound, TokenRejected, UsageRateLimited,
     get_limits, reset_label, time_until,
 )
+from .update import CHECK_INTERVAL_SECONDS, RELEASES_URL, available_update
 
 REFRESH_SECONDS = 60
 MENU_WIDTH = 264
@@ -229,6 +231,8 @@ class StatusApp(NSObject):
         self._limits = []
         self._error = None
         self._skip_ticks = 0
+        self._update = None
+        self._last_update_check = 0.0
         self.status_item = NSStatusBar.systemStatusBar().statusItemWithLength_(
             NSVariableStatusItemLength)
         self.status_item.button().setImagePosition_(2)  # NSImageLeft
@@ -247,6 +251,9 @@ class StatusApp(NSObject):
 
     @objc.python_method
     def _fetch(self):
+        if time.time() - self._last_update_check > CHECK_INTERVAL_SECONDS:
+            self._last_update_check = time.time()
+            self._update = available_update()
         limits, error = None, None
         try:
             limits = get_limits()
@@ -302,6 +309,9 @@ class StatusApp(NSObject):
             err = NSMenuItem.alloc().init()
             err.setView_(ErrorRowView.alloc().initWithMessage_(self._error))
             self.menu.addItem_(err)
+        if self._update:
+            self.menu.addItem_(NSMenuItem.separatorItem())
+            self._add_action("Update available — v" + self._update, "openReleases:")
         self.menu.addItem_(NSMenuItem.separatorItem())
         self._add_action("Quit", "quit:")
 
@@ -323,6 +333,10 @@ class StatusApp(NSObject):
     def donate_(self, _sender):
         self.menu.cancelTracking()
         webbrowser.open(DONATE_URL)
+
+    def openReleases_(self, _sender):
+        self.menu.cancelTracking()
+        webbrowser.open(RELEASES_URL)
 
     def quit_(self, _sender):
         NSApplication.sharedApplication().terminate_(None)

@@ -32,13 +32,21 @@ Works on Pro and Max plans. Requires being signed in to Claude Code (`claude` â†
 
 ## Install
 
-Requires macOS and Python 3.9+.
+Requires macOS.
+
+### Homebrew
 
 ```
-uv tool install git+https://github.com/TilbertBalaban/claude-usage-bar
+brew install tilbertbalaban/tap/claude-usage-bar
 ```
 
-(or `pipx install git+https://github.com/TilbertBalaban/claude-usage-bar`)
+### uv / pipx (needs Python 3.9+)
+
+```
+uv tool install claude-usage-bar
+```
+
+(or `pipx install claude-usage-bar`)
 
 Then:
 
@@ -48,6 +56,18 @@ claude-usage-bar autostart on   # start automatically at login (LaunchAgent)
 claude-usage-bar autostart off  # remove the login item
 claude-usage-bar status         # print current limits to the terminal
 ```
+
+## Updating
+
+The app checks GitHub once a day and shows an **Update available** item in the menu when there's a newer version. To update:
+
+```
+brew upgrade claude-usage-bar        # Homebrew
+uv tool upgrade claude-usage-bar     # uv
+pipx upgrade claude-usage-bar        # pipx
+```
+
+Then quit the app from its menu and start it again (`claude-usage-bar`, or log out/in if you use `autostart on`).
 
 ## Support
 
