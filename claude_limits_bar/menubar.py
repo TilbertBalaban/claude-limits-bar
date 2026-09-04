@@ -16,7 +16,9 @@ from AppKit import (
     NSFontAttributeName, NSForegroundColorAttributeName, NSImage, NSMakeRect,
     NSMenu, NSMenuItem, NSMutableParagraphStyle, NSParagraphStyleAttributeName,
     NSStatusBar, NSTextAlignmentCenter, NSTextAlignmentLeft,
-    NSTextAlignmentRight, NSVariableStatusItemLength, NSView,
+    NSTextAlignmentRight, NSTrackingActiveAlways,
+    NSTrackingArea, NSTrackingMouseEnteredAndExited,
+    NSVariableStatusItemLength, NSView,
 )
 from Foundation import NSObject, NSTimer
 from PyObjCTools import AppHelper
@@ -120,31 +122,54 @@ def _symbol_button(symbol, fallback, tooltip, target, action):
 
 
 class HeaderView(NSView):
-    """App title with the donate ($) and refresh icon buttons on the right."""
+    """App title with the stats, donate ($) and refresh icon buttons.
+
+    AppKit tooltips never fire while a menu is tracking, so hovering a button
+    swaps the header title for its hint text instead.
+    """
+
+    BUTTONS = [
+        ("chart.bar.xaxis", "📊", "Open claude.ai stats", "openUsage:"),
+        ("dollarsign.circle", "$", "Support the developer", "donate:"),
+        ("arrow.clockwise", "↻", "Refresh", "refresh:"),
+    ]
 
     def initWithTarget_(self, target):
         self = objc.super(HeaderView, self).initWithFrame_(
             NSMakeRect(0, 0, MENU_WIDTH, 38))
         if self is None:
             return None
-        stats = _symbol_button("chart.bar.xaxis", "📊",
-                               "Open claude.ai usage stats", target, "openUsage:")
-        stats.setFrame_(NSMakeRect(MENU_WIDTH - 100, 7, 26, 24))
-        self.addSubview_(stats)
-        donate = _symbol_button("dollarsign.circle", "$",
-                                "Support the developer", target, "donate:")
-        donate.setFrame_(NSMakeRect(MENU_WIDTH - 70, 7, 26, 24))
-        self.addSubview_(donate)
-        refresh = _symbol_button("arrow.clockwise", "↻",
-                                 "Refresh", target, "refresh:")
-        refresh.setFrame_(NSMakeRect(MENU_WIDTH - 40, 7, 26, 24))
-        self.addSubview_(refresh)
+        self._hint = None
+        x = MENU_WIDTH - 30 * len(self.BUTTONS) - 10
+        for symbol, fallback, hint, action in self.BUTTONS:
+            button = _symbol_button(symbol, fallback, hint, target, action)
+            frame = NSMakeRect(x, 7, 26, 24)
+            button.setFrame_(frame)
+            self.addSubview_(button)
+            self.addTrackingArea_(NSTrackingArea.alloc().initWithRect_options_owner_userInfo_(
+                frame,
+                NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways,
+                self, {"hint": hint}))
+            x += 30
         return self
 
+    def mouseEntered_(self, event):
+        self._hint = event.trackingArea().userInfo()["hint"]
+        self.setNeedsDisplay_(True)
+
+    def mouseExited_(self, _event):
+        self._hint = None
+        self.setNeedsDisplay_(True)
+
     def drawRect_(self, rect):
-        draw_text("✳ Claude Limits", NSMakeRect(16, 3, MENU_WIDTH - 120, 32),
-                  text_attrs(14, NSColor.labelColor(), bold=True,
-                             align=NSTextAlignmentLeft))
+        if self._hint:
+            draw_text(self._hint, NSMakeRect(16, 3, MENU_WIDTH - 110, 32),
+                      text_attrs(12, NSColor.secondaryLabelColor(),
+                                 align=NSTextAlignmentLeft))
+        else:
+            draw_text("✳ Claude Limits", NSMakeRect(16, 3, MENU_WIDTH - 110, 32),
+                      text_attrs(14, NSColor.labelColor(), bold=True,
+                                 align=NSTextAlignmentLeft))
 
 
 class DonutView(NSView):

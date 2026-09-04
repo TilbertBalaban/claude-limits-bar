@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.1 — 2026-09-04
+
+- Hovering a header button now shows its hint in the header (AppKit tooltips don't fire inside open menus)
+
 ## v1.2.0 — 2026-09-04
 
 - Renamed to claude-limits-bar (package, command, repo); the menu header now reads "Claude Limits"
