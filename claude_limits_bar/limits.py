@@ -108,7 +108,7 @@ def fetch_usage(token: str) -> dict:
         "Authorization": "Bearer " + token,
         "anthropic-beta": "oauth-2025-04-20",
         "Content-Type": "application/json",
-        "User-Agent": "claude-usage-bar",
+        "User-Agent": "claude-limits-bar",
     })
     try:
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT, context=_ssl_context()) as resp:

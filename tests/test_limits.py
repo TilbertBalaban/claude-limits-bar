@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from claude_usage_bar.limits import (
+from claude_limits_bar.limits import (
     CredentialsNotFound, Limit,
     bar_title, limit_line, local_reset_time, parse_access_token,
     parse_limits, primary_limit, reset_label, time_until,

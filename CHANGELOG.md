@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.0 — 2026-09-04
+
+- Renamed to claude-limits-bar (package, command, repo); the menu header now reads "Claude Limits"
+
 ## v1.1.1 — 2026-09-04
 
 - Friendly `status` message instead of a traceback when the usage API returns 429

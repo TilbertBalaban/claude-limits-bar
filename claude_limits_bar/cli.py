@@ -9,7 +9,7 @@ from .limits import (
     CredentialsNotFound, TokenRejected, UsageRateLimited, get_limits, limit_line,
 )
 
-LAUNCH_AGENT = Path.home() / "Library" / "LaunchAgents" / "com.claude-usage-bar.plist"
+LAUNCH_AGENT = Path.home() / "Library" / "LaunchAgents" / "com.claude-limits-bar.plist"
 
 
 def cmd_status() -> int:
@@ -41,7 +41,7 @@ def cmd_autostart(state: str) -> int:
         return 0
     executable = Path(sys.argv[0]).resolve()
     plist = {
-        "Label": "com.claude-usage-bar",
+        "Label": "com.claude-limits-bar",
         "ProgramArguments": [str(executable)],
         "RunAtLoad": True,
     }
@@ -55,7 +55,7 @@ def cmd_autostart(state: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        prog="claude-usage-bar",
+        prog="claude-limits-bar",
         description="Claude limits and reset times in the macOS menu bar.",
     )
     parser.add_argument("--version", action="version", version=VERSION)

@@ -142,7 +142,7 @@ class HeaderView(NSView):
         return self
 
     def drawRect_(self, rect):
-        draw_text("✳ Claude Usage", NSMakeRect(16, 3, MENU_WIDTH - 120, 32),
+        draw_text("✳ Claude Limits", NSMakeRect(16, 3, MENU_WIDTH - 120, 32),
                   text_attrs(14, NSColor.labelColor(), bold=True,
                              align=NSTextAlignmentLeft))
 

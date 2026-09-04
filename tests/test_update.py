@@ -1,6 +1,6 @@
 import unittest
 
-from claude_usage_bar.update import is_newer
+from claude_limits_bar.update import is_newer
 
 
 class TestIsNewer(unittest.TestCase):

@@ -8,14 +8,14 @@ from . import VERSION
 from .limits import _ssl_context
 
 RELEASES_API = ("https://api.github.com/repos/"
-                "TilbertBalaban/claude-usage-bar/releases/latest")
-RELEASES_URL = "https://github.com/TilbertBalaban/claude-usage-bar/releases"
+                "TilbertBalaban/claude-limits-bar/releases/latest")
+RELEASES_URL = "https://github.com/TilbertBalaban/claude-limits-bar/releases"
 CHECK_INTERVAL_SECONDS = 24 * 3600
 
 
 def latest_version(timeout: int = 10) -> Optional[str]:
     req = urllib.request.Request(RELEASES_API, headers={
-        "User-Agent": "claude-usage-bar",
+        "User-Agent": "claude-limits-bar",
         "Accept": "application/vnd.github+json",
     })
     with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context()) as resp:
