@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.1 — 2026-09-04
+
+- Refresh icon spins by swapping in rotated renderings of the symbol instead of rotating the button view, which looked skewed and blurry
+
 ## v1.3.0 — 2026-09-04
 
 - Refresh animation: the header refresh icon rotates and the donut and ring gauges spin while data is being fetched, settling back at 12 o'clock when done

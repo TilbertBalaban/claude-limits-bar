@@ -12,13 +12,14 @@ import webbrowser
 import objc
 from AppKit import (
     NSApplication, NSApplicationActivationPolicyAccessory,
-    NSAttributedString, NSBezierPath, NSButton, NSColor, NSFont,
+    NSAffineTransform, NSAttributedString, NSBezierPath, NSButton, NSColor,
+    NSCompositingOperationSourceOver, NSFont,
     NSFontAttributeName, NSForegroundColorAttributeName, NSImage, NSMakeRect,
     NSMenu, NSMenuItem, NSMutableParagraphStyle, NSParagraphStyleAttributeName,
     NSEventTrackingRunLoopMode, NSStatusBar, NSTextAlignmentCenter,
     NSTextAlignmentLeft, NSTextAlignmentRight, NSTrackingActiveAlways,
     NSTrackingArea, NSTrackingMouseEnteredAndExited,
-    NSVariableStatusItemLength, NSView,
+    NSVariableStatusItemLength, NSView, NSZeroRect,
 )
 from Foundation import (
     NSDefaultRunLoopMode, NSObject, NSRunLoop, NSRunLoopCommonModes, NSTimer,
@@ -114,6 +115,25 @@ def status_bar_image(limits, dark):
     return img
 
 
+def rotated_image(image, degrees):
+    """Template copy of `image` rotated about its center on a square canvas
+    large enough that the corners never clip mid-rotation."""
+    w, h = image.size().width, image.size().height
+    side = max(w, h) + 6
+    out = NSImage.alloc().initWithSize_((side, side))
+    out.lockFocus()
+    t = NSAffineTransform.transform()
+    t.translateXBy_yBy_(side / 2.0, side / 2.0)
+    t.rotateByDegrees_(degrees)
+    t.translateXBy_yBy_(-w / 2.0, -h / 2.0)
+    t.concat()
+    image.drawInRect_fromRect_operation_fraction_(
+        NSMakeRect(0, 0, w, h), NSZeroRect, NSCompositingOperationSourceOver, 1.0)
+    out.unlockFocus()
+    out.setTemplate_(True)
+    return out
+
+
 def _symbol_button(symbol, fallback, tooltip, target, action):
     image = NSImage.imageWithSystemSymbolName_accessibilityDescription_(
         symbol, tooltip)
@@ -154,6 +174,7 @@ class HeaderView(NSView):
             self.addSubview_(button)
             if action == "refresh:":
                 self.refresh_button = button
+                self.refresh_image = button.image()
             self.addTrackingArea_(NSTrackingArea.alloc().initWithRect_options_owner_userInfo_(
                 frame,
                 NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways,
@@ -163,7 +184,11 @@ class HeaderView(NSView):
 
     @objc.python_method
     def set_spin(self, degrees):
-        self.refresh_button.setFrameCenterRotation_(-degrees)
+        if self.refresh_image is None:
+            return
+        self.refresh_button.setImage_(
+            self.refresh_image if degrees == 0
+            else rotated_image(self.refresh_image, -degrees))
 
     def mouseEntered_(self, event):
         NSObject.cancelPreviousPerformRequestsWithTarget_(self)
