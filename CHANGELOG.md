@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.3 — 2026-09-04
+
+- Header button hints shown in the header again (instead of tooltips), with a short clear delay so moving between buttons doesn't flash the title
+
 ## v1.2.2 — 2026-09-04
 
 - Header button hints are native tooltips only; removed the hover title swap
