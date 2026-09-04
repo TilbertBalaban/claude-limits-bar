@@ -20,7 +20,9 @@ from AppKit import (
     NSTrackingArea, NSTrackingMouseEnteredAndExited,
     NSVariableStatusItemLength, NSView,
 )
-from Foundation import NSDefaultRunLoopMode, NSObject, NSTimer
+from Foundation import (
+    NSDefaultRunLoopMode, NSObject, NSRunLoop, NSRunLoopCommonModes, NSTimer,
+)
 from PyObjCTools import AppHelper
 
 from .limits import (
@@ -30,6 +32,9 @@ from .limits import (
 from .update import CHECK_INTERVAL_SECONDS, RELEASES_URL, available_update
 
 REFRESH_SECONDS = 60
+SPIN_FPS = 30
+SPIN_STEP_DEGREES = 12
+SPIN_MIN_SECONDS = 0.6
 MENU_WIDTH = 264
 RATE_LIMIT_ERROR = "Usage API rate-limited — showing last known data"
 DONATE_URL = "https://base.monobank.ua/tilbertbalaban"
@@ -49,7 +54,7 @@ def ring_color(limit):
     return GREEN if limit.kind == "session" else PURPLE
 
 
-def draw_ring(center, radius, line_width, percent, color, track_color):
+def draw_ring(center, radius, line_width, percent, color, track_color, spin=0):
     track = NSBezierPath.bezierPath()
     track.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_(
         center, radius, 0, 360)
@@ -62,7 +67,7 @@ def draw_ring(center, radius, line_width, percent, color, track_color):
     arc = NSBezierPath.bezierPath()
     # Start at 12 o'clock and sweep clockwise, like a countdown dial.
     arc.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_(
-        center, radius, 90, 90 - 360 * fraction, True)
+        center, radius, 90 - spin, 90 - spin - 360 * fraction, True)
     arc.setLineWidth_(line_width)
     arc.setLineCapStyle_(1)  # round
     color.setStroke()
@@ -147,12 +152,18 @@ class HeaderView(NSView):
             frame = NSMakeRect(x, 7, 26, 24)
             button.setFrame_(frame)
             self.addSubview_(button)
+            if action == "refresh:":
+                self.refresh_button = button
             self.addTrackingArea_(NSTrackingArea.alloc().initWithRect_options_owner_userInfo_(
                 frame,
                 NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways,
                 self, {"hint": hint}))
             x += 30
         return self
+
+    @objc.python_method
+    def set_spin(self, degrees):
+        self.refresh_button.setFrameCenterRotation_(-degrees)
 
     def mouseEntered_(self, event):
         NSObject.cancelPreviousPerformRequestsWithTarget_(self)
@@ -192,7 +203,13 @@ class DonutView(NSView):
         if self is None:
             return None
         self._limits = limits
+        self._spin = 0
         return self
+
+    @objc.python_method
+    def set_spin(self, degrees):
+        self._spin = degrees
+        self.setNeedsDisplay_(True)
 
     def drawRect_(self, rect):
         session = next((l for l in self._limits if l.kind == "session"), None)
@@ -202,10 +219,11 @@ class DonutView(NSView):
             return
         center = (MENU_WIDTH / 2.0, 85)
         track = NSColor.labelColor().colorWithAlphaComponent_(0.12)
-        draw_ring(center, 62, 11, primary.percent, ring_color(primary), track)
+        draw_ring(center, 62, 11, primary.percent, ring_color(primary), track,
+                  spin=self._spin)
         if weekly is not None:
             draw_ring(center, 74, 3.5, weekly.percent, ring_color(weekly),
-                      NSColor.clearColor())
+                      NSColor.clearColor(), spin=self._spin)
         draw_text("%d%%" % round(primary.percent),
                   NSMakeRect(0, 78, MENU_WIDTH, 40),
                   text_attrs(28, NSColor.labelColor(), bold=True))
@@ -222,7 +240,13 @@ class LimitRowView(NSView):
         if self is None:
             return None
         self._limit = limit
+        self._spin = 0
         return self
+
+    @objc.python_method
+    def set_spin(self, degrees):
+        self._spin = degrees
+        self.setNeedsDisplay_(True)
 
     def drawRect_(self, rect):
         bg = NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
@@ -231,7 +255,8 @@ class LimitRowView(NSView):
         bg.fill()
         limit = self._limit
         track = NSColor.labelColor().colorWithAlphaComponent_(0.15)
-        draw_ring((20 + 9, 18), 7.5, 2.5, limit.percent, ring_color(limit), track)
+        draw_ring((20 + 9, 18), 7.5, 2.5, limit.percent, ring_color(limit), track,
+                  spin=self._spin)
         pct = round(limit.percent)
         draw_text("!" if pct >= 100 else str(pct), NSMakeRect(20, 9, 18, 18),
                   text_attrs(6.5, NSColor.labelColor(), bold=True))
@@ -269,6 +294,11 @@ class StatusApp(NSObject):
         self._skip_ticks = 0
         self._update = None
         self._last_update_check = 0.0
+        self._fetching = False
+        self._fetch_started = 0.0
+        self._spin = 0
+        self._spin_timer = None
+        self._animated_views = []
         self.status_item = NSStatusBar.systemStatusBar().statusItemWithLength_(
             NSVariableStatusItemLength)
         self.status_item.button().setImagePosition_(2)  # NSImageLeft
@@ -283,7 +313,33 @@ class StatusApp(NSObject):
         if self._skip_ticks > 0:
             self._skip_ticks -= 1
             return
+        self._fetching = True
+        self._fetch_started = time.time()
+        self._start_spin()
         threading.Thread(target=self._fetch, daemon=True).start()
+
+    @objc.python_method
+    def _start_spin(self):
+        if self._spin_timer is not None:
+            return
+        self._spin_timer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
+            1.0 / SPIN_FPS, self, "spin:", None, True)
+        # Menus track in NSEventTrackingRunLoopMode; a default-mode timer
+        # would freeze the animation while the menu is open.
+        loop = NSRunLoop.currentRunLoop()
+        loop.addTimer_forMode_(self._spin_timer, NSRunLoopCommonModes)
+        loop.addTimer_forMode_(self._spin_timer, NSEventTrackingRunLoopMode)
+
+    def spin_(self, _timer):
+        self._spin = (self._spin + SPIN_STEP_DEGREES) % 360
+        settled = (not self._fetching
+                   and time.time() - self._fetch_started >= SPIN_MIN_SECONDS
+                   and self._spin == 0)
+        if settled:
+            self._spin_timer.invalidate()
+            self._spin_timer = None
+        for view in self._animated_views:
+            view.set_spin(self._spin)
 
     @objc.python_method
     def _fetch(self):
@@ -308,6 +364,7 @@ class StatusApp(NSObject):
         if limits is not None:
             self._limits = limits
         self._error = error
+        self._fetching = False
         # The usage endpoint has its own rate limit; poll gently after a 429.
         self._skip_ticks = 4 if error == RATE_LIMIT_ERROR else 0
         self._render()
@@ -337,17 +394,26 @@ class StatusApp(NSObject):
     @objc.python_method
     def _rebuild_menu(self):
         self.menu.removeAllItems()
+        self._animated_views = []
+        header = HeaderView.alloc().initWithTarget_(self)
         header_item = NSMenuItem.alloc().init()
-        header_item.setView_(HeaderView.alloc().initWithTarget_(self))
+        header_item.setView_(header)
         self.menu.addItem_(header_item)
+        self._animated_views.append(header)
         if self._limits:
+            donut = DonutView.alloc().initWithLimits_(self._limits)
             donut_item = NSMenuItem.alloc().init()
-            donut_item.setView_(DonutView.alloc().initWithLimits_(self._limits))
+            donut_item.setView_(donut)
             self.menu.addItem_(donut_item)
+            self._animated_views.append(donut)
             for limit in self._limits:
+                row_view = LimitRowView.alloc().initWithLimit_(limit)
                 row = NSMenuItem.alloc().init()
-                row.setView_(LimitRowView.alloc().initWithLimit_(limit))
+                row.setView_(row_view)
                 self.menu.addItem_(row)
+                self._animated_views.append(row_view)
+        for view in self._animated_views:
+            view.set_spin(self._spin)
         if self._error:
             err = NSMenuItem.alloc().init()
             err.setView_(ErrorRowView.alloc().initWithMessage_(self._error))

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.0 — 2026-09-04
+
+- Refresh animation: the header refresh icon rotates and the donut and ring gauges spin while data is being fetched, settling back at 12 o'clock when done
+
 ## v1.2.3 — 2026-09-04
 
 - Header button hints shown in the header again (instead of tooltips), with a short clear delay so moving between buttons doesn't flash the title
